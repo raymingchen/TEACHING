@@ -1,1 +1,176 @@
+import numpy as np
+import matplotlib.pyplot as plt
 
+# =============================================
+# Data
+# =============================================
+
+# Original demeaned points (columns are P1..P5)
+U = np.array([
+    [2.4, -3.6, 7.4, 1.4, -7.6],
+    [1.0, 7.0, -14.0, 9.0, -3.0]
+])
+
+# Eigenvectors in original coordinates
+v1 = np.array([0.3576, -0.9338])  # PC1 (Red)
+v2 = np.array([0.9338, 0.3576])   # PC2 (Blue)
+
+# Scores (points in the new PC coordinate system)
+scores = np.array([
+    [-0.0756, -7.8240, 15.7194, -7.9036, 0.0836],  # PC1 coords
+    [2.5987, -0.8585, 1.9037, 4.5257, -8.1697]      # PC2 coords
+])
+
+labels = ['P1', 'P2', 'P3', 'P4', 'P5']
+
+# =============================================
+# Error Calculations
+# =============================================
+pc1_scores = scores[0, :]
+pc2_scores = scores[1, :]
+
+# Errors when keeping PC1 (discarding PC2) → distance to PC1 axis (y=0)
+error_to_pc1_axis = np.abs(pc2_scores)
+sq_error_to_pc1_axis = pc2_scores**2
+
+# Errors when keeping PC2 (discarding PC1) → distance to PC2 axis (x=0)
+error_to_pc2_axis = np.abs(pc1_scores)
+sq_error_to_pc2_axis = pc1_scores**2
+
+# Total squared distance from origin (PC1² + PC2²)
+squared_norms = pc1_scores**2 + pc2_scores**2
+
+# =============================================
+# Print the full table
+# =============================================
+print("=" * 120)
+print("COMPLETE EUCLIDEAN ERRORS IN THE NEW PC SYSTEM")
+print("=" * 120)
+print(f"{'Point':<6} {'PC1':<12} {'PC2':<12} {'Error to PC1':<15} {'Sq Err PC1':<15} {'Error to PC2':<15} {'Sq Err PC2':<15} {'PC1²+PC2²':<15}")
+print(" " * 6 + "(keep PC1)" + " " * 6 + "(keep PC2)" + " " * 26 + "(|PC2|)" + " " * 8 + "(PC2²)" + " " * 8 + "(|PC1|)" + " " * 8 + "(PC1²)")
+print("-" * 120)
+for i, label in enumerate(labels):
+    print(f"{label:<6} {pc1_scores[i]:<12.4f} {pc2_scores[i]:<12.4f} "
+          f"{error_to_pc1_axis[i]:<15.4f} {sq_error_to_pc1_axis[i]:<15.4f} "
+          f"{error_to_pc2_axis[i]:<15.4f} {sq_error_to_pc2_axis[i]:<15.4f} "
+          f"{squared_norms[i]:<15.4f}")
+print("=" * 120)
+print(f"SSE (discard PC2) = sum(PC2²) = {np.sum(sq_error_to_pc1_axis):.4f}  (should equal λ2 ≈ 98.354)")
+print(f"SSE (discard PC1) = sum(PC1²) = {np.sum(sq_error_to_pc2_axis):.4f}  (should equal λ1 ≈ 370.846)")
+print(f"Total Variance     = λ1 + λ2   = {np.sum(sq_error_to_pc1_axis) + np.sum(sq_error_to_pc2_axis):.4f}")
+print("=" * 120)
+
+# =============================================
+# Create the two subplots
+# =============================================
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 9))
+
+# ---------- Plot 1: Original Coordinate System ----------
+ax1.set_title('1. Original System (x, y)', fontsize=14, fontweight='bold')
+
+# Demeaned points
+ax1.scatter(U[0, :], U[1, :], color='black', s=80, zorder=5)
+for i, label in enumerate(labels):
+    ax1.annotate(f'{label} ({U[0, i]:.1f}, {U[1, i]:.1f})',
+                 (U[0, i], U[1, i]), textcoords="offset points",
+                 xytext=(10, 10), ha='center', fontsize=9)
+
+# Center (origin)
+ax1.scatter(0, 0, color='green', s=150, marker='x', linewidths=3, zorder=6, label='Center')
+
+# Reference dashed axes
+ax1.axhline(0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+ax1.axvline(0, color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+
+# Draw the actual PC vectors (scaled by 4.5 to span the data well)
+scale = 4.5
+ax1.arrow(0, 0, v1[0]*scale, v1[1]*scale, head_width=0.4, head_length=0.4,
+          fc='red', ec='red', linewidth=3, label='v1 (PC1)')
+ax1.arrow(0, 0, v2[0]*scale, v2[1]*scale, head_width=0.4, head_length=0.4,
+          fc='blue', ec='blue', linewidth=3, label='v2 (PC2)')
+
+# Add labels at the tips of the vectors in original coords
+ax1.text(v1[0]*scale*1.05, v1[1]*scale*1.05, f'v1=({v1[0]:.3f}, {v1[1]:.3f})',
+         color='red', fontsize=10, fontweight='bold')
+ax1.text(v2[0]*scale*1.05, v2[1]*scale*1.05, f'v2=({v2[0]:.3f}, {v2[1]:.3f})',
+         color='blue', fontsize=10, fontweight='bold')
+
+ax1.set_xlabel('x', fontsize=12)
+ax1.set_ylabel('y', fontsize=12)
+ax1.legend(loc='upper left', fontsize=10)
+ax1.grid(True, alpha=0.3)
+ax1.axis('equal')
+ax1.set_xlim(-12, 12)
+ax1.set_ylim(-18, 12)
+
+
+# ---------- Plot 2: New PC Coordinate System (with ALL Errors) ----------
+ax2.set_title('2. New PC System (PC1, PC2) with Complete Error Visualization', fontsize=14, fontweight='bold')
+
+# Scores (transformed points)
+ax2.scatter(scores[0, :], scores[1, :], color='black', s=80, zorder=5)
+for i, label in enumerate(labels):
+    ax2.annotate(f'{label} ({scores[0, i]:.2f}, {scores[1, i]:.2f})',
+                 (scores[0, i], scores[1, i]), textcoords="offset points",
+                 xytext=(10, 10), ha='center', fontsize=9)
+
+# Center (origin)
+ax2.scatter(0, 0, color='green', s=150, marker='x', linewidths=3, zorder=6, label='Center')
+
+# Draw the PC axes as straight colored lines through the origin
+ax2.axhline(0, color='red', linestyle='-', linewidth=1.5, alpha=0.5, label='PC1 Axis')
+ax2.axvline(0, color='blue', linestyle='-', linewidth=1.5, alpha=0.5, label='PC2 Axis')
+
+# --- Draw BOTH vertical and horizontal error lines ---
+for i in range(len(labels)):
+    # Vertical line: error to PC1 axis (distance = |PC2|)
+    ax2.plot([scores[0, i], scores[0, i]], [scores[1, i], 0],
+             'k--', linewidth=1, alpha=0.4, zorder=1)
+    # Annotate error to PC1 axis (vertical)
+    ax2.annotate(f'err₁={error_to_pc1_axis[i]:.2f}\nerr₁²={sq_error_to_pc1_axis[i]:.2f}',
+                 (scores[0, i] + 0.3, scores[1, i]/2),
+                 fontsize=6, color='darkred', rotation=90, ha='center', va='center')
+
+    # Horizontal line: error to PC2 axis (distance = |PC1|)
+    ax2.plot([scores[0, i], 0], [scores[1, i], scores[1, i]],
+             'b--', linewidth=1, alpha=0.4, zorder=1)
+    # Annotate error to PC2 axis (horizontal)
+    ax2.annotate(f'err₂={error_to_pc2_axis[i]:.2f}\nerr₂²={sq_error_to_pc2_axis[i]:.2f}',
+                 (scores[0, i]/2, scores[1, i] - 0.3 if scores[1, i] > 0 else scores[1, i] + 0.3),
+                 fontsize=6, color='darkblue', ha='center', va='center')
+
+# Draw the basis vectors in the new system (exactly (1,0) and (0,1))
+ax2.arrow(0, 0, 1, 0, head_width=0.3, head_length=0.3,
+          fc='red', ec='red', linewidth=3, zorder=10)
+ax2.arrow(0, 0, 0, 1, head_width=0.3, head_length=0.3,
+          fc='blue', ec='blue', linewidth=3, zorder=10)
+
+# Mark the tips with circles and label them as the basis vectors
+ax2.scatter(1, 0, color='red', s=120, edgecolors='black', linewidth=2, zorder=11, label='v1 = (1, 0)')
+ax2.scatter(0, 1, color='blue', s=120, edgecolors='black', linewidth=2, zorder=11, label='v2 = (0, 1)')
+ax2.text(1.2, -0.4, 'v1 = (1, 0)', color='red', fontsize=10, fontweight='bold')
+ax2.text(-1.0, 1.2, 'v2 = (0, 1)', color='blue', fontsize=10, fontweight='bold')
+
+# --- Update the text box with BOTH SSEs ---
+summary_text = (
+    f"Total Variance = {np.sum(sq_error_to_pc1_axis) + np.sum(sq_error_to_pc2_axis):.3f}\n"
+    f"λ1 (PC1) = {np.sum(sq_error_to_pc2_axis):.3f} ({np.sum(sq_error_to_pc2_axis)/(np.sum(sq_error_to_pc1_axis)+np.sum(sq_error_to_pc2_axis))*100:.1f}%)\n"
+    f"λ2 (PC2) = {np.sum(sq_error_to_pc1_axis):.3f} ({np.sum(sq_error_to_pc1_axis)/(np.sum(sq_error_to_pc1_axis)+np.sum(sq_error_to_pc2_axis))*100:.1f}%)\n"
+    f"SSE (discard PC2) = {np.sum(sq_error_to_pc1_axis):.3f}\n"
+    f"SSE (discard PC1) = {np.sum(sq_error_to_pc2_axis):.3f}"
+)
+ax2.text(0.02, 0.98, summary_text, transform=ax2.transAxes,
+         fontsize=10, verticalalignment='top',
+         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9))
+
+ax2.set_xlabel('Principal Component 1 (PC1)', fontsize=12, color='red')
+ax2.set_ylabel('Principal Component 2 (PC2)', fontsize=12, color='blue')
+ax2.legend(loc='upper left', fontsize=9)
+ax2.grid(True, alpha=0.3)
+ax2.axis('equal')
+ax2.set_xlim(-10, 20)
+ax2.set_ylim(-10, 10)
+
+plt.tight_layout()
+plt.show()
